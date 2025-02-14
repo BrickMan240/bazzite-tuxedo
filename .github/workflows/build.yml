@@ -313,8 +313,8 @@ jobs:
           sudo podman rm $TMP
           sudo chmod 666 vmlinuz # might not be needed
           sbverify --list vmlinuz
-          curl --retry 3 -Lo kernel-sign.der https://github.com/ublue-os/kernel-cache/raw/main/certs/public_key.der
-          curl --retry 3 -Lo akmods.der https://github.com/ublue-os/kernel-cache/raw/main/certs/public_key_2.der
+          curl --retry 3 -Lo kernel-sign.der https://github.com/BrickMan240/ublue-akmods-tuxedo/raw/refs/heads/main/certs/public_key.der
+          curl --retry 3 -Lo akmods.der https://github.com/BrickMan240/ublue-akmods-tuxedo/raw/refs/heads/main/certs/public_key_2.der
           openssl x509 -in kernel-sign.der -out kernel-sign.crt
           openssl x509 -in akmods.der -out akmods.crt
           sbverify --cert kernel-sign.crt vmlinuz || exit 1
