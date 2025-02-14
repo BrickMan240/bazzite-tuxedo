@@ -34,3 +34,6 @@ dnf5 -y install \
     /tmp/akmods-extra-rpms/kmods/*bmi260*.rpm \
     /tmp/akmods-extra-rpms/kmods/*ryzen-smu*.rpm \
     /tmp/akmods-extra-rpms/kmods/*evdi*.rpm
+
+KERNEL_VERSION="$(rpm -q kernel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}')"
+akmods --force --kernels "${KERNEL_VERSION}" --kmod "tuxedo-drivers-kmod"
