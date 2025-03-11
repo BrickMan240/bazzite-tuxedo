@@ -36,7 +36,7 @@ index 0000000..878bf6c
 +    # sudo reboot
 +EOF
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -155,7 +155,7 @@ index 2e6fb83..390c04a 100644
  enum class GamescopeUpscaleFilter : uint32_t
  {
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -248,7 +248,7 @@ index 095694e..e41fad9 100644
  	bool hasHwndStyle = false;
  	uint32_t hwndStyle = 0;
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -309,7 +309,7 @@ index 78a86ee..99df8aa 100644
  			wlserver_keyboardfocus( old_kb_surf, false );
  			return;
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -378,29 +378,31 @@ index df7616d..4a17499 100644
  				break;
  			case '?':
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Antheas Kapenekakis <git@antheas.dev>
 Date: Fri, 11 Oct 2024 21:56:54 +0200
-Subject: fix(intel-gpu): allow for (enabling) hacky texture
+Subject: fix(intel-gpu): allow for disabling hacky texture
 
-Disabling hacky texture will use more hardware planes, causing some devices to composite yielding lower fps. Required for intel to work
+Disabling hacky texture will use more hardware planes, causing some
+devices to composite yielding lower fps. Used to be required for intel
+to work. Allow disabling it.
 ---
  src/main.cpp         | 2 ++
  src/steamcompmgr.cpp | 5 ++++-
  2 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/src/main.cpp b/src/main.cpp
-index a76b51b..84e05a9 100644
+index a76b51b..ecfbf0a 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -128,6 +128,7 @@ const struct option *gamescope_options = (struct option[]){
  	{ "disable-xres", no_argument, nullptr, 'x' },
  	{ "fade-out-duration", required_argument, nullptr, 0 },
  	{ "force-orientation", required_argument, nullptr, 0 },
-+	{ "enable-hacky-texture", no_argument, nullptr, 0 },
++	{ "disable-hacky-texture", no_argument, nullptr, 0 },
  	{ "disable-touch-click", no_argument, nullptr, 0 },
  	{ "force-windows-fullscreen", no_argument, nullptr, 0 },
  	{ "custom-refresh-rates", required_argument, nullptr, 0 },
@@ -408,19 +410,19 @@ index a76b51b..84e05a9 100644
  	"  -T, --stats-path               write statistics to path\n"
  	"  -C, --hide-cursor-delay        hide cursor image after delay\n"
  	"  -e, --steam                    enable Steam integration\n"
-+	"  --enable-hacky-texture         enable hacky texture on hw that support it\n"
++	"  --disable-hacky-texture         enable hacky texture on hw that support it\n"
  	"  --disable-touch-click          disable touchscreen tap acting as a click\n"
  	"  --xwayland-count               create N xwayland servers\n"
  	"  --prefer-vk-device             prefer Vulkan device for compositing (ex: 1002:7300)\n"
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index 4a17499..da3115f 100644
+index 4a17499..d91d0fe 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -147,6 +147,7 @@ static lut3d_t g_tmpLut3d;
  extern int g_nDynamicRefreshHz;
  
  bool g_bForceHDRSupportDebug = false;
-+bool g_bHackyEnabled = false;
++bool g_bHackyEnabled = true;
  extern float g_flInternalDisplayBrightnessNits;
  extern float g_flHDRItmSdrNits;
  extern float g_flHDRItmTargetNits;
@@ -437,13 +439,13 @@ index 4a17499..da3115f 100644
  					set_mura_overlay(optarg);
  				} else if (strcmp(opt_name, "disable-touch-click") == 0) {
  					cv_disable_touch_click = true;
-+				} else if (strcmp(opt_name, "enable-hacky-texture") == 0) {
-+					g_bHackyEnabled = true;
++				} else if (strcmp(opt_name, "disable-hacky-texture") == 0) {
++					g_bHackyEnabled = false;
  				}
  				break;
  			case '?':
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -457,13 +459,13 @@ Subject: fix: re-add external orientation options to not break current
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/src/main.cpp b/src/main.cpp
-index 84e05a9..2398535 100644
+index ecfbf0a..70ca4f8 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -129,6 +129,8 @@ const struct option *gamescope_options = (struct option[]){
  	{ "fade-out-duration", required_argument, nullptr, 0 },
  	{ "force-orientation", required_argument, nullptr, 0 },
- 	{ "enable-hacky-texture", no_argument, nullptr, 0 },
+ 	{ "disable-hacky-texture", no_argument, nullptr, 0 },
 +	{ "force-panel-type", required_argument, nullptr, 0 },
 +	{ "force-external-orientation", required_argument, nullptr, 0 },
  	{ "disable-touch-click", no_argument, nullptr, 0 },
@@ -479,7 +481,7 @@ index 84e05a9..2398535 100644
  				} else if (strcmp(opt_name, "custom-refresh-rates") == 0) {
  					g_customRefreshRates = parse_custom_refresh_rates( optarg );
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -511,7 +513,7 @@ index 99df8aa..5e8f516 100644
  		default:
  		case GAMESCOPE_PANEL_ORIENTATION_AUTO:
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -529,7 +531,7 @@ it. Therefore, bypass some checks to allow it to work just for this usecase.
  2 files changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/src/main.cpp b/src/main.cpp
-index 2398535..0621c65 100644
+index 70ca4f8..9be0db5 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -132,6 +132,7 @@ const struct option *gamescope_options = (struct option[]){
@@ -542,20 +544,20 @@ index 2398535..0621c65 100644
  
 @@ -194,6 +195,7 @@ const char usage[] =
  	"  -e, --steam                    enable Steam integration\n"
- 	"  --enable-hacky-texture         enable hacky texture on hw that support it\n"
+ 	"  --disable-hacky-texture         enable hacky texture on hw that support it\n"
  	"  --disable-touch-click          disable touchscreen tap acting as a click\n"
 +	"  --enable-vrr-modesetting       enable setting framerate while VRR is on in the internal display\n"
  	"  --xwayland-count               create N xwayland servers\n"
  	"  --prefer-vk-device             prefer Vulkan device for compositing (ex: 1002:7300)\n"
  	"  --force-orientation            rotate the internal display (left, right, normal, upsidedown)\n"
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index da3115f..69fd348 100644
+index d91d0fe..e59caaa 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -148,6 +148,7 @@ extern int g_nDynamicRefreshHz;
  
  bool g_bForceHDRSupportDebug = false;
- bool g_bHackyEnabled = false;
+ bool g_bHackyEnabled = true;
 +bool g_bVRRModesetting = false;
  extern float g_flInternalDisplayBrightnessNits;
  extern float g_flHDRItmSdrNits;
@@ -584,11 +586,11 @@ index da3115f..69fd348 100644
  					cv_disable_touch_click = true;
 +				} else if (strcmp(opt_name, "enable-vrr-modesetting") == 0) {
 +					g_bVRRModesetting = true;
- 				} else if (strcmp(opt_name, "enable-hacky-texture") == 0) {
- 					g_bHackyEnabled = true;
+ 				} else if (strcmp(opt_name, "disable-hacky-texture") == 0) {
+ 					g_bHackyEnabled = false;
  				}
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -609,7 +611,7 @@ variant of the patch that only does that.
  5 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/src/main.cpp b/src/main.cpp
-index 0621c65..056e1c1 100644
+index 9be0db5..85f7f7f 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -199,6 +199,7 @@ const char usage[] =
@@ -650,7 +652,7 @@ index 0621c65..056e1c1 100644
  					g_customRefreshRates = parse_custom_refresh_rates( optarg );
  				} else if (strcmp(opt_name, "sharpness") == 0 ||
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index 69fd348..3dd64f8 100644
+index e59caaa..193cdee 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -7192,7 +7192,7 @@ void update_mode_atoms(xwayland_ctx_t *root_ctx, bool* needs_flush = nullptr)
@@ -700,7 +702,7 @@ index 0569472..104f7a2 100644
  std::vector<ResListEntry_t> wlserver_xdg_commit_queue();
  
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -731,7 +733,7 @@ index 75c3258..f014be9 100644
  					m_Mutable.ValidDynamicRefreshRates = TableToVector<uint32_t>( *otDynamicRefreshRates );
  
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -746,7 +748,7 @@ disable VRR and use the classic frame limiter.
  1 file changed, 28 insertions(+), 2 deletions(-)
 
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index 3dd64f8..7dacfe7 100644
+index 193cdee..04e42b6 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -165,6 +165,7 @@ uint32_t g_reshade_technique_idx = 0;
@@ -801,7 +803,7 @@ index 3dd64f8..7dacfe7 100644
  	if ( ev->atom == ctx->atoms.gamescopeDisplayForceInternal )
  	{
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -815,7 +817,7 @@ Subject: fix(battery): run at half hz while at steamUI and disable VRR V2 +
  1 file changed, 32 insertions(+), 11 deletions(-)
 
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index 7dacfe7..4098c44 100644
+index 04e42b6..8f45314 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -166,6 +166,9 @@ uint32_t g_reshade_technique_idx = 0;
@@ -946,7 +948,7 @@ index 7dacfe7..4098c44 100644
  		const bool bVRR = GetBackend()->IsVRRActive();
  		if ( bVRR )
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -960,7 +962,7 @@ Subject: feat(battery): add atom for controlling frame halving
  2 files changed, 8 insertions(+)
 
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index 4098c44..6c8ce74 100644
+index 8f45314..a45863b 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -5919,6 +5919,10 @@ handle_property_notify(xwayland_ctx_t *ctx, XPropertyEvent *ev)
@@ -997,7 +999,7 @@ index df2af70..e4eec9f 100644
  
  	bool HasQueuedEvents();
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -1081,7 +1083,7 @@ index b537170..ccabd88 100644
  	struct Layer_t
  	{
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index 6c8ce74..dfee904 100644
+index a45863b..6a1e101 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -169,6 +169,8 @@ bool g_bVRRRequested = false;
@@ -1155,7 +1157,7 @@ index e4eec9f..2347cbb 100644
  
  	bool HasQueuedEvents();
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -1264,7 +1266,7 @@ index 6bb0b88..3c44839 100644
  			m_bWasCompositing = true;
  
 diff --git a/src/main.cpp b/src/main.cpp
-index 056e1c1..b175974 100644
+index 85f7f7f..90971e2 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -127,6 +127,7 @@ const struct option *gamescope_options = (struct option[]){
@@ -1273,7 +1275,7 @@ index 056e1c1..b175974 100644
  	{ "fade-out-duration", required_argument, nullptr, 0 },
 +	{ "use-rotation-shader", required_argument, nullptr, 0 },
  	{ "force-orientation", required_argument, nullptr, 0 },
- 	{ "enable-hacky-texture", no_argument, nullptr, 0 },
+ 	{ "disable-hacky-texture", no_argument, nullptr, 0 },
  	{ "force-panel-type", required_argument, nullptr, 0 },
 @@ -198,6 +199,7 @@ const char usage[] =
  	"  --enable-vrr-modesetting       enable setting framerate while VRR is on in the internal display\n"
@@ -1672,7 +1674,7 @@ index 1eeaa25..fbb2e0b 100644
  	*y = ty;
  }
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -1766,7 +1768,7 @@ index 3226400..7ae273f 100644
              bNeedsFullComposite |= bNeedsCompositeFromFilter;
              bNeedsFullComposite |= g_bColorSliderInUse;
 diff --git a/src/main.cpp b/src/main.cpp
-index b175974..874f1dc 100644
+index 90971e2..1d29b8e 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
 @@ -7,6 +7,7 @@
@@ -2278,7 +2280,7 @@ index f2b8527..64cc1c9 100644
  
  const int EOTF_Gamma22 = 0;
 diff --git a/src/steamcompmgr.cpp b/src/steamcompmgr.cpp
-index dfee904..c2111d2 100644
+index 6a1e101..1cd5a28 100644
 --- a/src/steamcompmgr.cpp
 +++ b/src/steamcompmgr.cpp
 @@ -906,6 +906,7 @@ gamescope::ConCommand cc_debug_set_fps_limit( "debug_set_fps_limit", "Set refres
@@ -2389,7 +2391,7 @@ index 2347cbb..bc38c98 100644
  		Atom gamescopeBlurMode;
  		Atom gamescopeBlurRadius;
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -2457,7 +2459,7 @@ index c817880..407dae8 100644
        static uint32_t s_minImageCount = []() -> uint32_t {
          if (auto minCount = parseEnv<uint32_t>("GAMESCOPE_WSI_MIN_IMAGE_COUNT")) {
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -2494,7 +2496,7 @@ index 7ae273f..0a3657f 100644
          {
              xdg_log.errorf( "Failed to map keymap fd." );
 -- 
-2.48.0
+2.48.1
 
 
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
@@ -2503,16 +2505,16 @@ Date: Sun, 19 Jan 2025 17:52:28 +0100
 Subject: feat: add legion go s display (works only with VRR on)
 
 ---
- .../displays/lenovo.legiongos.lcd.lua         | 64 +++++++++++++++++++
- 1 file changed, 64 insertions(+)
+ .../displays/lenovo.legiongos.lcd.lua         | 70 +++++++++++++++++++
+ 1 file changed, 70 insertions(+)
  create mode 100644 scripts/00-gamescope/displays/lenovo.legiongos.lcd.lua
 
 diff --git a/scripts/00-gamescope/displays/lenovo.legiongos.lcd.lua b/scripts/00-gamescope/displays/lenovo.legiongos.lcd.lua
 new file mode 100644
-index 0000000..e522b38
+index 0000000..5d27391
 --- /dev/null
 +++ b/scripts/00-gamescope/displays/lenovo.legiongos.lcd.lua
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,70 @@
 +gamescope.config.known_displays.legiongos_lcd = {
 +    pretty_name = "Lenovo Legion Go S LCD",
 +    hdr = {
@@ -2570,6 +2572,12 @@ index 0000000..e522b38
 +    
 +    matches = function(display)
 +        if display.vendor == "CSW" and display.model == "PN8007QB1-1" then
++            -- product: 0x0800
++            debug("[legos_lcd] Matched vendor: "..display.vendor.." model: "..display.model.." product:"..display.product)
++            return 5000
++        end
++        if display.vendor == "BOE" and display.model == "NS080WUM-LX1" then
++            -- product: 0x0C00
 +            debug("[legos_lcd] Matched vendor: "..display.vendor.." model: "..display.model.." product:"..display.product)
 +            return 5000
 +        end
@@ -2579,5 +2587,92 @@ index 0000000..e522b38
 +debug("Registered Lenovo Legion Go S LCD as a known display")
 \ No newline at end of file
 -- 
-2.48.0
+2.48.1
+
+
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <git@antheas.dev>
+Date: Sun, 23 Feb 2025 02:16:55 +0100
+Subject: feat(asus): add asus z13
+
+---
+ .../00-gamescope/displays/asus.z13.lcd.lua    | 57 +++++++++++++++++++
+ subprojects/edid-decode                       |  1 +
+ 2 files changed, 58 insertions(+)
+ create mode 100644 scripts/00-gamescope/displays/asus.z13.lcd.lua
+ create mode 160000 subprojects/edid-decode
+
+diff --git a/scripts/00-gamescope/displays/asus.z13.lcd.lua b/scripts/00-gamescope/displays/asus.z13.lcd.lua
+new file mode 100644
+index 0000000..891f1ea
+--- /dev/null
++++ b/scripts/00-gamescope/displays/asus.z13.lcd.lua
+@@ -0,0 +1,57 @@
++gamescope.config.known_displays.asusz13_lcd = {
++    pretty_name = "Asus Z13 LCD",
++    dynamic_refresh_rates = {
++        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 
++        65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 
++        82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 
++        99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 
++        113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 
++        127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 
++        141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 
++        155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 
++        169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180
++    },
++    
++    -- Detailed Timing Descriptors:
++    -- DTD 1:  1920x1200  120.002 Hz   8:5   151.683 kHz 315.500 MHz (172 mm x 107 mm)
++    --   Modeline "1920x1200_120.00" 315.500  1920 1968 2000 2080  1200 1254 1260 1264  -HSync -VSync
++    -- DTD 2:  1920x1200   60.001 Hz   8:5    75.841 kHz 157.750 MHz (172 mm x 107 mm)
++    --   Modeline "1920x1200_60.00" 157.750  1920 1968 2000 2080  1200 1254 1260 1264  -HSync -VSync
++    dynamic_modegen = function(base_mode, refresh)
++        debug("Generating mode "..refresh.."Hz with fixed pixel clock")
++        local vfps = {
++            4886, 4751, 4620, 4495, 4375, 4259, 4147, 4040, 3936, 3836, 3739, 3646, 
++            3556, 3468, 3384, 3302, 3223, 3146, 3072, 2999, 2929, 2861, 2795, 2731, 
++            2668, 2608, 2548, 2491, 2435, 2380, 2327, 2275, 2225, 2175, 2127, 2080, 
++            2035, 1990, 1946, 1903, 1862, 1821, 1781, 1742, 1704, 1667, 1630, 1594, 
++            1559, 1525, 1491, 1458, 1426, 1395, 1364, 1333, 1303, 1274, 1245, 1217, 
++            1190, 1162, 1136, 1110, 1084, 1059, 1034, 1010, 986, 962, 939, 916, 894,
++            872, 850, 829, 808, 787, 767, 747, 727, 708, 689, 670, 652, 634, 616, 
++            598, 581, 563, 547, 530, 513, 497, 481, 466, 450, 435, 420, 405, 390, 
++            376, 361, 347, 333, 320, 306, 293, 279, 266, 254, 241, 228, 216, 204, 
++            192, 180, 168, 156, 145, 133, 122, 111, 100, 89, 78, 68, 57, 47, 36, 
++            26, 16, 6
++        }
++        local vfp = vfps[zero_index(refresh - 48)]
++        if vfp == nil then
++            warn("Couldn't do refresh "..refresh.." on ROG Ally")
++            return base_mode
++        end
++
++        local mode = base_mode
++
++        gamescope.modegen.adjust_front_porch(mode, vfp)
++        mode.vrefresh = gamescope.modegen.calc_vrefresh(mode)
++
++        --debug(inspect(mode))
++        return mode
++    end,
++    matches = function(display)
++        if display.vendor == "TMA" and display.model == "TL134ADXP03" then
++            debug("[z13] Matched vendor: "..display.vendor.." model: "..display.model.." product:"..display.product)
++            return 5000
++        end
++        return -1
++    end
++}
++debug("Registered Lenovo Legion Go S LCD as a known display")
+\ No newline at end of file
+diff --git a/subprojects/edid-decode b/subprojects/edid-decode
+new file mode 160000
+index 0000000..c6b859d
+--- /dev/null
++++ b/subprojects/edid-decode
+@@ -0,0 +1 @@
++Subproject commit c6b859d7f0251e2433fb81bd3f67bd2011c2036c
+-- 
+2.48.1
 
